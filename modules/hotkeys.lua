@@ -28,6 +28,7 @@ end
 
 function M.start()
     clearHotkeys()
+    hs.hotkey.setLogLevel("error")
 
     local bindings = (M.cfg and M.cfg.bindings) or require("hotkeys.bindings")
 

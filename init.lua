@@ -38,8 +38,7 @@ local function merge(mod, name)
 end
 
 local function printModuleLoadLogs()
-    local logOrder = { "hotkeys", "eventtap" }
-    for _, moduleName in ipairs(logOrder) do
+    for _, moduleName in ipairs(listModuleNames()) do
         local mod = loaded[moduleName]
         if mod and mod.getLoadLogLines then
             local lines = mod.getLoadLogLines() or {}

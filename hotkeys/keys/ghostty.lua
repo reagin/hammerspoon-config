@@ -1,8 +1,8 @@
 return {
-    id = "open_terminal",
+    id = "open_ghostty",
     mods = { "cmd", "ctrl" },
     key = "t",
     action = function()
-        hs.application.launchOrFocus("Terminal")
+        hs.application.launchOrFocus("Ghostty")
     end
 }
