@@ -2,11 +2,11 @@
 local loggerInstance
 
 return function()
-    if loggerInstance then
-        return loggerInstance
-    end
-    hs.console.clearConsole()
-    local bootstrap = require("config").bootstrap or {}
-    loggerInstance = hs.logger.new(bootstrap.logTag or "config", bootstrap.logLevel or "info")
-    return loggerInstance
+	if loggerInstance then
+		return loggerInstance
+	end
+	local bootstrap = require("config").bootstrap or {}
+	loggerInstance = hs.logger.new(bootstrap.logTag or "config", bootstrap.logLevel or "info")
+	hs.console.clearConsole()
+	return loggerInstance
 end

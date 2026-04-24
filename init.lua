@@ -1,14 +1,13 @@
 -- 入口：读 config、合并各模块段、启动；提供 hs_reload()。
+hs.loadSpoon("EmmyLua")
+
 local cfg = require("config")
 local log = require("utils.log")()
-local boot = cfg.bootstrap or {}
 
-local state = {}
 local loaded = {}
-local moduleNames = boot.modules or {"eventtap", "hotkeys"}
+local moduleNames = (cfg.bootstrap or {}).modules or { "eventtap", "hotkeys" }
 
 local function merge(mod, name)
-    mod.name = name
     mod.cfg = mod.cfg or {}
     local section = cfg[name]
     if section then
@@ -16,14 +15,6 @@ local function merge(mod, name)
             mod.cfg[optionKey] = optionValue
         end
     end
-end
-
-local function enabled(mod)
-    local enabledFlag = mod.cfg.enabled
-    if enabledFlag == nil then
-        return true
-    end
-    return enabledFlag == true
 end
 
 local function logRemapLoadTree(remapRules)
@@ -61,25 +52,14 @@ end
 
 for _, name in ipairs(moduleNames) do
     local mod = loaded[name]
-    if enabled(mod) and mod.start then
+    if mod.cfg.enabled ~= false and mod.start then
         mod.start()
-        state[name] = "started"
-    else
-        state[name] = "skipped"
     end
 end
 
-do
-    log.i("initialization complete")
-    for _, name in ipairs(moduleNames) do
-        log.i(string.format("%s: %s", name, state[name]))
-    end
-    logRemapLoadTree(cfg.eventtap and cfg.eventtap.remaps)
-end
-
+---@diagnostic disable-next-line: lowercase-global
 function hs_reload()
-    log.i("reloading...")
-    log.i("reload | " .. table.concat(moduleNames, ", "))
+    log.i("reloading | " .. table.concat(moduleNames, ", "))
     for index = #moduleNames, 1, -1 do
         local moduleName = moduleNames[index]
         local mod = loaded[moduleName]
@@ -89,3 +69,6 @@ function hs_reload()
     end
     hs.reload()
 end
+
+-- 打印 remaps 树
+logRemapLoadTree(cfg.eventtap and cfg.eventtap.remaps)

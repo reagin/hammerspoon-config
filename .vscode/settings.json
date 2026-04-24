@@ -1,0 +1,4 @@
+{
+  "Lua.workspace.library": ["${workspaceFolder}/Spoons/EmmyLua.spoon/annotations"],
+  "Lua.workspace.ignoreDir": ["Spoons"]
+}
