@@ -1,6 +1,8 @@
 -- 聚合 config/apps/*.lua，生成供 eventtap 使用的已解析重映射列表。
 -- 新应用：新增 config/apps/<name>.lua，并在下表追加 require。
-local apps = {require("config.apps.pieoneer")}
+local apps = {
+    -- require("config.apps.example")
+}
 
 -- keyName：键名字符串，如 "tab"
 local function resolveKeyCode(keyName)

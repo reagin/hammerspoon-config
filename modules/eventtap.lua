@@ -13,7 +13,11 @@ end
 function M.start()
     local remaps = M.cfg and M.cfg.remaps
     if not remaps or #remaps == 0 then
-        require("utils.log")():e("eventtap: empty cfg.remaps")
+        if tap then
+            tap:stop()
+            tap = nil
+        end
+        require("utils.log")().i("eventtap: no remaps configured, skip watcher")
         return
     end
 
