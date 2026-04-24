@@ -1,12 +1,19 @@
--- 单一 hs.logger 实例，标签与级别来自 config.bootstrap。
-local loggerInstance
+-- 按标签缓存 hs.logger 实例。
+local loggerByTag = {}
+local consoleCleared = false
 
-return function()
-	if loggerInstance then
-		return loggerInstance
-	end
-	local bootstrap = require("config").bootstrap or {}
-	loggerInstance = hs.logger.new(bootstrap.logTag or "config", bootstrap.logLevel or "info")
-	hs.console.clearConsole()
-	return loggerInstance
+return function(tag, level)
+    if not consoleCleared then
+        hs.console.clearConsole()
+        consoleCleared = true
+    end
+
+    local loggerTag = tag or "config"
+    if loggerByTag[loggerTag] then
+        return loggerByTag[loggerTag]
+    end
+
+    local logger = hs.logger.new(loggerTag, level or "info")
+    loggerByTag[loggerTag] = logger
+    return logger
 end

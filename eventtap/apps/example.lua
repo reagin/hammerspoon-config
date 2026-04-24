@@ -8,21 +8,20 @@ return {
     target = {
         -- hs.eventtap.keyStroke 支持的 mods 名（任选其一或多个组成表，勿需写全）：
         -- "shift" | "control" | "option" | "cmd" | "fn"
-        -- 多修饰键示例：{ "alt", "shift" }
-        mods = {"alt"},
+        mods = { "alt", "shift" },
         key = "tab"
     },
 
-    remaps = {{
-        id = "cmd_tab_to_example",
+    remaps = { {
+        id = "cmd_tab_to_cmd_tab",
         description = "Cmd+Tab 转发给 example",
         trigger = {
-            mods = {"cmd"},
+            mods = { "cmd" },
             key = "tab"
         },
         target = {
-            mods = {"shift", "control", "option", "cmd"},
+            mods = { "cmd" },
             key = "tab"
         }
-    }}
+    } }
 }
