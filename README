@@ -1,0 +1,77 @@
+# Hammerspoon 配置
+
+面向 macOS 的 [Hammerspoon](https://www.hammerspoon.org/) 个人配置：采用与常见开源 dotfiles 相近的布局（根目录 `config.lua`、`init.lua` 中的模块列表与启动顺序、`modules/` 分文件），并将**与外部应用相关的快捷键按应用分文件汇总**，便于维护。
+
+## 目录结构
+
+```
+~/.hammerspoon/
+├── init.lua              # 入口：require config、合并各模块段、启动
+├── config.lua            # 总配置：bootstrap（启动项）+ 各模块段
+├── lib/
+│   └── log.lua           # 单一 hs.logger（读 config.bootstrap 的 logTag / logLevel）
+├── config/
+│   ├── remaps.lua        # 聚合 config/apps/*.lua → eventtap.remaps
+│   └── apps/
+│       └── pieoneer.lua  # Pieoneer：target + remaps
+├── modules/
+│   ├── eventtap.lua      # 按键拦截与转发
+│   └── hotkeys.lua       # 预留：hs.hotkey
+└── Spoons/               # 可选：官方 Spoon 目录
+```
+
+该模式与 [scottcs/dot_hammerspoon](https://github.com/scottcs/dot_hammerspoon)、[justone/hammerspoon-config](https://github.com/justone/hammerspoon-config) 等仓库常见的「`config.lua` + `init.lua` 模块表 + `modules/`」一致；未使用单独的 `core/loader` 包，启动逻辑集中在 `init.lua`，便于对照社区示例阅读。
+
+## 行为说明：Cmd+Tab 与 Pieoneer
+
+- **拦截**：由 [`config/apps/pieoneer.lua`](config/apps/pieoneer.lua) 中 `remaps` 的 `trigger` 定义（当前为 Cmd+Tab）。
+- **转发**：模拟 `target` 中的修饰键与键名（当前为 Alt+Tab）；请在 [Pieoneer](https://pieoneer.app/) 中将全局快捷键设为与 **`target` 完全一致**。
+- **效果**：匹配成功时事件被消费，系统自带应用切换器不会出现。
+
+**模块开关**：[`config.lua`](config.lua) 中的 `eventtap.enabled`。
+
+## 日志与控制台
+
+启动与 `hs_reload()` 各输出一行摘要（`ready \| …`、`reload \| …`）。具体实现见 [`lib/log.lua`](lib/log.lua)，标签与级别在 [`config.lua`](config.lua) 的 **`bootstrap`** 中配置：
+
+| 字段 | 含义 |
+|------|------|
+| `modules` | 加载顺序，如 `{ "eventtap", "hotkeys" }` |
+| `logTag` | `hs.logger` 标签（默认 `config`） |
+| `logLevel` | 如 `info`、`warning`、`error` |
+
+以 **`--`** 开头的控制台行来自 **Hammerspoon 本体**，无法在配置里关闭。
+
+## 按应用维护快捷键（推荐流程）
+
+| 你想做的事 | 操作位置 |
+|------------|----------|
+| 只改 Pieoneer 相关（触发键或转发目标） | 仅编辑 [`config/apps/pieoneer.lua`](config/apps/pieoneer.lua) 的 `target` 与/或 `remaps`，然后在 Pieoneer 内对齐 `target` |
+| 为 Pieoneer 增加另一条重映射 | 在同一文件的 `remaps` 数组中追加一项；若仍转发到同一 `target`，不必再写 `target` |
+| 增加其它应用 | 新建 `config/apps/<应用名>.lua`（形状可参考 `pieoneer.lua`），并在 [`config/remaps.lua`](config/remaps.lua) 顶部的 `apps` 列表里增加一行 `require` |
+
+`target` 在应用配置文件中**只定义一次**，各条 `remaps` 默认复用，避免 Alt+Tab 等组合在多处重复。
+
+## 系统权限
+
+在 **系统设置 → 隐私与安全性 → 辅助功能** 中为 Hammerspoon 开启权限，否则键盘事件无法拦截。
+
+## 修改与重载
+
+1. 编辑 `~/.hammerspoon` 下相关文件并保存。
+2. 点击菜单栏 Hammerspoon 图标 → **Reload Config**，或在控制台执行 `hs.reload()`。
+
+若在 `init.lua` 中已定义 `hs_reload()`，可先依次调用各模块的 `stop()` 再重载（当前实现已提供该函数）。
+
+## 如何新增一个 Hammerspoon 模块
+
+1. 在 `modules/` 下新增 `yourmodule.lua`，导出至少包含 `start`、可选 `stop` 的表（与现有模块相同）。
+2. 在 [`config.lua`](config.lua) 中增加同名段，例如 `yourmodule = { enabled = true, ... }`。
+3. 在 [`config.lua`](config.lua) 的 `bootstrap.modules` 末尾加入 `"yourmodule"`（顺序即启动顺序）。
+4. 在 `start()` 内通过 `M.cfg` 读取 `config.lua` 里该段的字段（`init.lua` 会把 `cfg.yourmodule` 合并进 `M.cfg`）。
+
+## 参考文档
+
+- [API 索引](https://www.hammerspoon.org/docs/)
+- [Hammerspoon 入门](https://www.hammerspoon.org/go/)
+- [Spoons 说明（官方仓库）](https://github.com/Hammerspoon/hammerspoon/blob/master/SPOONS.md)
