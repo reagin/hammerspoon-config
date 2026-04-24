@@ -1,5 +1,4 @@
 -- 按 M.cfg.remaps 拦截 keyDown 并 keyStroke 转发。
-
 local M = {}
 
 local tap
@@ -14,7 +13,7 @@ end
 function M.start()
     local remaps = M.cfg and M.cfg.remaps
     if not remaps or #remaps == 0 then
-        require("lib.log")():e("eventtap: empty cfg.remaps")
+        require("utils.log")():e("eventtap: empty cfg.remaps")
         return
     end
 
@@ -23,7 +22,7 @@ function M.start()
         tap = nil
     end
 
-    tap = hs.eventtap.new({ hs.eventtap.event.types.keyDown }, function(event)
+    tap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(event)
         local flags = event:getFlags()
         local keyCode = event:getKeyCode()
         for _, rule in ipairs(remaps) do

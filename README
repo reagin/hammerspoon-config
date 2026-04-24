@@ -8,8 +8,8 @@
 ~/.hammerspoon/
 ├── init.lua              # 入口：require config、合并各模块段、启动
 ├── config.lua            # 总配置：bootstrap（启动项）+ 各模块段
-├── lib/
-│   └── log.lua           # 单一 hs.logger（读 config.bootstrap 的 logTag / logLevel）
+├── utils/
+│   └── log.lua           # hs.logger 封装（启动摘要、remaps 树、模块报错）
 ├── config/
 │   ├── remaps.lua        # 聚合 config/apps/*.lua → eventtap.remaps
 │   └── apps/
@@ -32,15 +32,23 @@
 
 ## 日志与控制台
 
-启动与 `hs_reload()` 各输出一行摘要（`ready \| …`、`reload \| …`）。具体实现见 [`lib/log.lua`](lib/log.lua)，标签与级别在 [`config.lua`](config.lua) 的 **`bootstrap`** 中配置：
+启动与 remaps 列表均通过 Hammerspoon 原生的 [`hs.logger`](https://www.hammerspoon.org/docs/hs.logger.html) 输出（见 [`utils/log.lua`](utils/log.lua)，标签与级别由 `bootstrap.logTag` / `bootstrap.logLevel` 决定）。控制台可能同时带有应用行首时间戳与 logger 自带时间，属上游展示行为。
+
+启动时会打印一行 `ready | …`，再按应用分组列出已加载的 remap，例如：
+
+```
+-- pieoneer, Pieoneer
+    -- cmd_tab_to_pieoneer | Cmd+Tab 转发给 Pieoneer
+```
+
+[`config.lua`](config.lua) 的 **`bootstrap`** 相关字段：
 
 | 字段 | 含义 |
 |------|------|
 | `modules` | 加载顺序，如 `{ "eventtap", "hotkeys" }` |
-| `logTag` | `hs.logger` 标签（默认 `config`） |
-| `logLevel` | 如 `info`、`warning`、`error` |
+| `logTag` / `logLevel` | 传给 `hs.logger.new` |
 
-以 **`--`** 开头的控制台行来自 **Hammerspoon 本体**，无法在配置里关闭。
+以 **`-- Lazy extension loading`** 等 **`--`** 开头的行来自 **Hammerspoon 应用自身**，本配置无法关闭。
 
 ## 按应用维护快捷键（推荐流程）
 
