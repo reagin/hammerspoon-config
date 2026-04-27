@@ -1,4 +1,5 @@
 {
-  "Lua.workspace.library": ["${workspaceFolder}/Spoons/EmmyLua.spoon/annotations"],
-  "Lua.workspace.ignoreDir": ["Spoons"]
+  "Lua.diagnostics.ignoredFiles": "Disable",
+  "Lua.workspace.ignoreDir": ["Spoons"],
+  "Lua.workspace.library": ["${workspaceFolder}/Spoons/EmmyLua.spoon/annotations"]
 }

@@ -1,0 +1,10 @@
+---
+description: Automatically load project memory file for every session
+alwaysApply: true
+---
+
+# Load Project Memory
+
+- At the start of each conversation, read `MEMORY.MD` in the repository root as project memory.
+- Treat `MEMORY.MD` as persistent project context unless the user explicitly overrides it.
+- If `MEMORY.MD` changes during work, re-read it before continuing substantial tasks.
