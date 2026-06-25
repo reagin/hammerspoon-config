@@ -2,7 +2,7 @@ local APP_BUNDLE_ID = "com.mitchellh.ghostty"
 
 return {
     id = "open-ghostty",
-    mods = { "cmd", "ctrl" },
+    mods = { "command", "control" },
     key = "t",
     action = function()
         local appPath = hs.application.pathForBundleID(APP_BUNDLE_ID)

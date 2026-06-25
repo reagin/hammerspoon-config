@@ -1,27 +1,54 @@
--- example：与该应用相关的快捷键约定（触发 + 转发目标）。
--- 请在 example 中将「全局快捷键」设为与 target 一致；Hammerspoon 会模拟该组合键。
+-- Eventtap app remap template.
+-- 复制本文件为 eventtap/apps/<app-id>.lua，并让 id 与文件名 <app-id> 保持一致。
+-- 目标应用中需要把全局快捷键设置为 target 中的组合键，Hammerspoon 会模拟该组合键。
 return {
+    -- 必填：小写 kebab-case；例如文件为 example.lua 时，id 必须是 "example"。
     id = "example",
-    displayName = "example",
+    displayName = "Example",
 
-    -- 默认转发目标；remaps 项可省略 target 以复用此处
+    -- 可选：app 级默认派发策略；单条 remap 可用自己的 dispatch 覆盖。
+    -- "immediateTrigger"：trigger keyDown 命中后按住 target，trigger keyUp 或 trigger 修饰键释放时松开。
+    -- "afterReleaseTrigger"：吞掉 trigger keyDown/keyUp，等 trigger 修饰键全松开后发送一次 target tap。
+    dispatch = "immediateTrigger",
+
+    -- 可选：app 级默认转发目标；remap 中省略 target 时复用这里。
+    -- target.mods 支持："command" | "control" | "option" | "shift" | "fn"
     target = {
-        -- hs.eventtap.keyStroke 支持的 mods 名（任选其一或多个组成表，勿需写全）：
-        -- "shift" | "control" | "option" | "cmd" | "fn"
-        mods = { "alt", "shift" },
+        mods = { "control", "option", "command" },
         key = "tab"
     },
 
-    remaps = { {
-        id = "cmd_tab_to_cmd_tab",
-        description = "Cmd+Tab 转发给 example",
-        trigger = {
-            mods = { "cmd" },
-            key = "tab"
+    remaps = {
+        {
+            id = "command-tab-to-example",
+            description = "Command+Tab 转发到 Example 默认目标快捷键",
+
+            -- 必填：触发快捷键。
+            -- trigger.mods 支持通用修饰键：
+            -- "command" | "control" | "option" | "shift" | "fn"
+            -- 也支持左右侧精确匹配：
+            -- "leftCommand" | "rightCommand" | "leftControl" | "rightControl"
+            -- "leftOption" | "rightOption" | "leftShift" | "rightShift"
+            trigger = {
+                mods = { "command" },
+                key = "tab"
+            }
+
+            -- 此处未写 target，会复用 app 级 target。
         },
-        target = {
-            mods = { "cmd" },
-            key = "tab"
+
+        {
+            id = "right-option-space-to-example",
+            description = "右 Option+Space 转发到单独目标快捷键",
+            dispatch = "afterReleaseTrigger",
+            trigger = {
+                mods = { "rightOption" },
+                key = "space"
+            },
+            target = {
+                mods = { "option", "shift" },
+                key = "space"
+            }
         }
-    } }
+    }
 }

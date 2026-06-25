@@ -1,4 +1,5 @@
 -- 聚合 hotkeys/keys/*.lua，新增或删除文件即可调整快捷键。
+local modifiers = require("utils.modifiers")
 
 local function isKebabLower(value)
     if type(value) ~= "string" then
@@ -57,6 +58,9 @@ for _, moduleMeta in ipairs(listKeyModules()) do
     end
     if binding.id ~= moduleMeta.baseName then
         error("hotkeys.bindings: id '" .. binding.id .. "' must match file name '" .. moduleMeta.baseName .. "'")
+    end
+    if binding.mods ~= nil then
+        binding.hotkeyMods = modifiers.normalizeHotkeyMods(binding.mods, "hotkeys.bindings: mods")
     end
     table.insert(bindings, binding)
 end

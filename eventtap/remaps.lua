@@ -1,5 +1,11 @@
 -- 聚合 eventtap/apps/*.lua，生成供 eventtap 使用的已解析重映射列表。
 -- 新应用：新增 eventtap/apps/<name>.lua；无需手动修改本文件。
+local modifiers = require("utils.modifiers")
+
+local allowedDispatches = {
+    immediateTrigger = true,
+    afterReleaseTrigger = true
+}
 
 local function isKebabLower(value)
     if type(value) ~= "string" then
@@ -78,6 +84,9 @@ local function appendResolved(resolved, app, remap)
     if not trigger or not trigger.key then
         error("eventtap.remaps: remap missing trigger.key (app=" .. tostring(app.id) .. ")")
     end
+    if trigger.mods == nil then
+        error("eventtap.remaps: remap missing trigger.mods (app=" .. tostring(app.id) .. ", id=" .. tostring(remap.id) .. ")")
+    end
 
     local target = remap.target or app.target
     if not target or not target.mods or not target.key then
@@ -89,14 +98,20 @@ local function appendResolved(resolved, app, remap)
         error("eventtap.remaps: invalid remap id '" .. tostring(remapId) .. "' in app '" .. tostring(app.id) .. "'")
     end
 
+    local dispatch = remap.dispatch or app.dispatch or "immediateTrigger"
+    if not allowedDispatches[dispatch] then
+        error("eventtap.remaps: unsupported dispatch '" .. tostring(dispatch) .. "' in app '" .. tostring(app.id) .. "'")
+    end
+
     table.insert(resolved, {
         id = remapId,
         description = remap.description,
         appId = app.id,
         appDisplayName = app.displayName or app.id,
         keyCode = resolveKeyCode(trigger.key),
-        modifierPolicy = remap.modifierPolicy or "cmdOnly",
-        targetMods = target.mods,
+        dispatch = dispatch,
+        triggerMods = modifiers.normalizeTriggerMods(trigger.mods, "eventtap.remaps: trigger.mods"),
+        targetMods = modifiers.normalizeEventtapTargetMods(target.mods, "eventtap.remaps: target.mods"),
         targetKey = target.key
     })
 end
