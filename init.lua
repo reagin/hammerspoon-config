@@ -4,6 +4,20 @@ hs.loadSpoon("EmmyLua")
 -- 初始化日志
 local log = require("utils.log")()
 
+local function unloadModuleTree(prefix)
+    local moduleNames = {}
+    for moduleName, _ in pairs(package.loaded) do
+        if moduleName == prefix or moduleName:sub(1, #prefix + 1) == prefix .. "." then
+            table.insert(moduleNames, moduleName)
+        end
+    end
+    for _, moduleName in ipairs(moduleNames) do
+        package.loaded[moduleName] = nil
+    end
+end
+
+unloadModuleTree("launched.scripts")
+
 -- 加载模块配置
 local loaded = {}
 local config = {
@@ -14,6 +28,10 @@ local config = {
     hotkeys = {
         enabled = true,
         bindings = require("hotkeys.bindings")
+    },
+    launched = {
+        enabled = true,
+        scripts = require("launched.scripts")
     }
 }
 

@@ -8,18 +8,22 @@ This file is a fast-start memory for stateless sessions.
 ## Architecture Snapshot / 架构快照
 
 - Entry: `init.lua`
-- Modules: `modules/eventtap.lua`, `modules/hotkeys.lua`
+- Modules: `modules/eventtap.lua`, `modules/hotkeys.lua`, `modules/launched.lua`
 - Eventtap rules: `eventtap/remaps.lua` auto-loads `eventtap/apps/*.lua`
 - Active eventtap remaps: `eventtap/apps/dory.lua`; `eventtap/apps/example.lua.bak` is a template
 - Hotkey rules: `hotkeys/bindings.lua` auto-loads `hotkeys/keys/*.lua`
+- Launched scripts: `launched/scripts.lua` auto-loads `launched/scripts/*.lua`
+- Active launched scripts: `launched/scripts/limitping.lua`; `launched/scripts/example.lua.bak` is a template
 - Logging: `utils/log.lua` provides tagged logger factory
 - Modifiers: `utils/modifiers.lua` centralizes modifier-name parsing and Hammerspoon API conversion
 
 - 入口：`init.lua`
-- 模块：`modules/eventtap.lua`、`modules/hotkeys.lua`
+- 模块：`modules/eventtap.lua`、`modules/hotkeys.lua`、`modules/launched.lua`
 - Eventtap 规则：`eventtap/remaps.lua` 自动加载 `eventtap/apps/*.lua`
 - 当前 eventtap 映射：`eventtap/apps/dory.lua`；`eventtap/apps/example.lua.bak` 是模板
 - Hotkey 规则：`hotkeys/bindings.lua` 自动加载 `hotkeys/keys/*.lua`
+- Launched 脚本：`launched/scripts.lua` 自动加载 `launched/scripts/*.lua`
+- 当前 launched 脚本：`launched/scripts/limitping.lua`；`launched/scripts/example.lua.bak` 是模板
 - 日志：`utils/log.lua` 提供按标签 logger 工厂
 - 修饰键：`utils/modifiers.lua` 统一修饰键名称解析与 Hammerspoon API 转换
 
@@ -28,13 +32,13 @@ This file is a fast-start memory for stateless sessions.
 1. `init.lua` assembles runtime config.
 2. Modules are loaded and merged with config sections.
 3. Modules start when enabled.
-4. Startup logs are printed in order: `hotkeys` then `eventtap`.
+4. Startup logs are printed in sorted module-name order: `eventtap`, `hotkeys`, `launched`.
 5. `hs_reload()` stops modules in reverse order, then calls `hs.reload()`.
 
 1. `init.lua` 组装运行时配置。
 2. 加载模块并合并对应配置。
 3. 启用模块执行 `start()`。
-4. 启动日志按 `hotkeys` 再 `eventtap` 输出。
+4. 启动日志按模块名排序输出：`eventtap`、`hotkeys`、`launched`。
 5. `hs_reload()` 逆序停止模块后调用 `hs.reload()`。
 
 ## Rule File Contract / 规则文件约定
@@ -77,14 +81,36 @@ This file is a fast-start memory for stateless sessions.
 - `dispatch = "immediateTrigger"` 会吞掉触发键 keydown，立即调度 target 修饰键/普通键，在 trigger 按住期间保持 target 按下，抑制重复 trigger keydown，并在触发键 keyup 或触发修饰键释放时松开 target。
 - `dispatch = "afterReleaseTrigger"` 会吞掉触发键 keydown/keyup，等所有触发修饰键松开后调度一次完整 target tap。
 
+### Launched scripts (`launched/scripts/*.lua`)
+
+- One file = one boot script.
+- Required fields: `id`, `command`.
+- Optional field: `description`.
+- `command` supports single-line or multi-line Lua strings.
+- Commands run through `/bin/zsh -lc` with `hs.execute(..., true)` so user shell environment variables are available where Hammerspoon can resolve them.
+- The module stores the current macOS boot ID from `sysctl -n kern.boottime` in `hs.settings`.
+- Scripts run once per system boot, not once per Hammerspoon reload.
+- If any script fails, the boot ID is not marked complete and scripts are retried on the next Hammerspoon load.
+- `launched/scripts/limitping.lua` prefers `/usr/local/bin/limitping`, runs `limitping bg status` before start to clear stale state, starts only the Codex watcher, and prints status/log diagnostics on failure.
+
+- 一文件对应一个启动脚本。
+- 必填字段：`id`、`command`。
+- 可选字段：`description`。
+- `command` 支持单行或多行 Lua 字符串。
+- 命令通过 `/bin/zsh -lc` 与 `hs.execute(..., true)` 执行，让脚本尽量获得 Hammerspoon 可解析到的用户 shell 环境变量。
+- 模块会把 `sysctl -n kern.boottime` 得到的当前 macOS 启动 ID 存入 `hs.settings`。
+- 脚本每次系统启动只运行一次，不会每次 Hammerspoon reload 都运行。
+- 如果任一脚本失败，本次启动不会标记完成，下次 Hammerspoon 加载时会重试。
+- `launched/scripts/limitping.lua` 优先使用 `/usr/local/bin/limitping`，启动前运行 `limitping bg status` 清理陈旧状态，只启动 Codex watcher，并在失败时输出状态和日志诊断。
+
 ## Logging Notes / 日志说明
 
-- Project tags: `hotkeys`, `eventtap`, default `config`.
+- Project tags: `eventtap`, `hotkeys`, `launched`, default `config`.
 - Console is cleared once on first logger retrieval after reload.
 - `modules/hotkeys.lua` sets `hs.hotkey.setLogLevel("error")` to suppress noisy hotkey info logs.
 - `modules/hotkeys.lua` reports failed `hs.hotkey.bind` registrations in startup logs.
 
-- 项目 logger 标签：`hotkeys`、`eventtap`、默认 `config`。
+- 项目 logger 标签：`eventtap`、`hotkeys`、`launched`、默认 `config`。
 - 每次重载后首次取 logger 会清空一次控制台。
 - `modules/hotkeys.lua` 使用 `hs.hotkey.setLogLevel("error")` 抑制热键扩展噪声日志。
 - `modules/hotkeys.lua` 会在启动日志中报告失败的 `hs.hotkey.bind` 注册。

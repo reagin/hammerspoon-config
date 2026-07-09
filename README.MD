@@ -1,7 +1,7 @@
 # Hammerspoon Config / Hammerspoon 配置
 
-Modular Hammerspoon setup for macOS with auto-discovery for `eventtap` remap rules and `hotkeys` bindings.
-面向 macOS 的模块化 Hammerspoon 配置，`eventtap` 与 `hotkeys` 规则均支持自动发现。
+Modular Hammerspoon setup for macOS with auto-discovery for `eventtap` remap rules, `hotkeys` bindings, and one-shot `launched` boot scripts.
+面向 macOS 的模块化 Hammerspoon 配置，`eventtap`、`hotkeys` 与系统启动后执行一次的 `launched` 脚本均支持自动发现。
 
 ## Current Architecture / 当前架构
 
@@ -10,7 +10,8 @@ Modular Hammerspoon setup for macOS with auto-discovery for `eventtap` remap rul
 ├── init.lua                    # Entry: assemble config, load/start modules, hs_reload()
 ├── modules/
 │   ├── eventtap.lua            # Keyboard interception + remap forwarding
-│   └── hotkeys.lua             # Global hotkey registration lifecycle
+│   ├── hotkeys.lua             # Global hotkey registration lifecycle
+│   └── launched.lua            # One-shot boot script runner lifecycle
 ├── eventtap/
 │   ├── remaps.lua              # Auto-scan eventtap/apps/*.lua -> normalized remaps
 │   └── apps/
@@ -19,6 +20,10 @@ Modular Hammerspoon setup for macOS with auto-discovery for `eventtap` remap rul
 │   ├── bindings.lua            # Auto-scan hotkeys/keys/*.lua -> binding list
 │   └── keys/
 │       └── open-ghostty.lua    # Single hotkey definition
+├── launched/
+│   ├── scripts.lua             # Auto-scan launched/scripts/*.lua -> script list
+│   └── scripts/
+│       └── example.lua.bak     # Template for launched shell scripts
 ├── utils/
 │   ├── log.lua                 # Tagged logger factory + one-time console clear
 │   └── modifiers.lua           # Shared modifier-name parsing and API conversion
@@ -27,16 +32,16 @@ Modular Hammerspoon setup for macOS with auto-discovery for `eventtap` remap rul
 
 ## Load Flow / 加载流程
 
-1. `init.lua` builds runtime config (`eventtap.remaps`, `hotkeys.bindings`).
+1. `init.lua` builds runtime config (`eventtap.remaps`, `hotkeys.bindings`, `launched.scripts`).
 2. Modules in `modules/` are loaded and merged with corresponding config sections.
 3. Each module `start()` runs if `enabled ~= false`.
-4. Module load logs are printed in fixed order: `hotkeys` -> `eventtap`.
+4. Module load logs are printed in sorted module-name order: `eventtap` -> `hotkeys` -> `launched`.
 5. `hs_reload()` stops modules in reverse order, then calls `hs.reload()`.
 
-1. `init.lua` 组装运行时配置（`eventtap.remaps`、`hotkeys.bindings`）。
+1. `init.lua` 组装运行时配置（`eventtap.remaps`、`hotkeys.bindings`、`launched.scripts`）。
 2. 加载 `modules/` 模块并合并对应配置。
 3. `enabled ~= false` 的模块执行 `start()`。
-4. 模块加载日志按固定顺序输出：`hotkeys` -> `eventtap`。
+4. 模块加载日志按模块名排序输出：`eventtap` -> `hotkeys` -> `launched`。
 5. `hs_reload()` 逆序调用 `stop()`，再执行 `hs.reload()`。
 
 ## Rule Operations / 规则维护
@@ -97,15 +102,45 @@ Modular Hammerspoon setup for macOS with auto-discovery for `eventtap` remap rul
 
 - `hotkeys/keys/open-ghostty.lua`：绑定 `Command+Control+T` 打开 Ghostty。
 
+### Add or remove launched scripts / 新增或删除 launched 脚本
+
+- Add: create `launched/scripts/*.lua` exporting `id`, optional `description`, and `command`.
+- `command` can be a single-line or multi-line Lua string and is executed through `/bin/zsh -lc`.
+- `hs.execute(command, true)` is used under the hood so scripts can access the user's shell environment where Hammerspoon can resolve it.
+- The module records the current macOS boot ID from `sysctl -n kern.boottime` in `hs.settings`, so scripts run only once per system boot and are skipped on later Hammerspoon reloads.
+- If any script fails, the boot ID is not marked complete and the scripts will be retried on the next Hammerspoon load.
+- `launched/scripts/limitping.lua` uses `/usr/local/bin/limitping` when available, runs `limitping bg status` before start to clear stale state, starts only the Codex watcher with `limitping bg start codex`, and prints status plus recent logs on failure.
+- Remove: delete that file.
+- No change needed in `launched/scripts.lua` (auto-scan).
+- Reload via `hs_reload()`; scripts will only run if the current boot has not been marked complete.
+
+- 新增：在 `launched/scripts/*.lua` 新建文件，导出 `id`、可选 `description` 与 `command`。
+- `command` 可以是单行或多行 Lua 字符串，并通过 `/bin/zsh -lc` 执行。
+- 底层使用 `hs.execute(command, true)`，让脚本尽量获得 Hammerspoon 可解析到的用户 shell 环境。
+- 模块会把 `sysctl -n kern.boottime` 得到的当前 macOS 启动 ID 记录到 `hs.settings`，因此脚本每次系统启动只运行一次，后续 Hammerspoon reload 会跳过。
+- 如果任一脚本失败，本次启动不会标记完成，下次 Hammerspoon 加载时会重试。
+- `launched/scripts/limitping.lua` 会优先使用 `/usr/local/bin/limitping`，启动前运行 `limitping bg status` 清理陈旧状态，只用 `limitping bg start codex` 启动 Codex watcher，并在失败时输出 status 与最近日志。
+- 删除：直接删除该文件。
+- 无需改 `launched/scripts.lua`（自动扫描）。
+- 使用 `hs_reload()` 重载；只有当前启动周期尚未标记完成时才会执行脚本。
+
+### Active launched scripts / 当前 launched 脚本
+
+- `launched/scripts/limitping.lua`: starts the Codex `limitping` background watcher once per macOS boot and reports status/log diagnostics when startup fails.
+- `launched/scripts/example.lua.bak` is a template and is not auto-loaded.
+
+- `launched/scripts/limitping.lua`：每次 macOS 启动后启动一次 Codex `limitping` 后台 watcher，启动失败时输出状态与日志诊断。
+- `launched/scripts/example.lua.bak` 是模板，不会被自动加载。
+
 ## Logging and Debugging / 日志与调试
 
-- Project logs use tagged loggers from `utils/log.lua` (`hotkeys`, `eventtap`, default `config`).
+- Project logs use tagged loggers from `utils/log.lua` (`eventtap`, `hotkeys`, `launched`, default `config`).
 - First logger access clears Hammerspoon console once per reload cycle.
 - `modules/hotkeys.lua` sets `hs.hotkey.setLogLevel("error")` to suppress noisy hotkey info logs.
 - `modules/hotkeys.lua` reports failed `hs.hotkey.bind` registrations in startup logs.
 - Hammerspoon internal lines prefixed with `--` are app-native logs, not project logs.
 
-- 项目日志通过 `utils/log.lua` 按 tag 输出（`hotkeys`、`eventtap`、默认 `config`）。
+- 项目日志通过 `utils/log.lua` 按 tag 输出（`eventtap`、`hotkeys`、`launched`、默认 `config`）。
 - 每次重载后首次获取 logger 会清空一次控制台。
 - `modules/hotkeys.lua` 使用 `hs.hotkey.setLogLevel("error")` 抑制噪声级热键日志。
 - `modules/hotkeys.lua` 会在启动日志中报告失败的 `hs.hotkey.bind` 注册。
@@ -126,7 +161,7 @@ Update docs at least when one of the following changes occurs:
 
 - add/remove entry files or directories / 新增或删除目录、入口文件
 - change module load order, config sources, or logger behavior / 修改模块加载顺序、配置来源或日志行为
-- change rule schema for `eventtap` or `hotkeys` / 修改 `eventtap` 或 `hotkeys` 规则结构
+- change rule schema for `eventtap`, `hotkeys`, or `launched` / 修改 `eventtap`、`hotkeys` 或 `launched` 规则结构
 
 ## References / 参考文档
 

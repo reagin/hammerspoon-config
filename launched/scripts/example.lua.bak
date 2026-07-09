@@ -1,0 +1,8 @@
+return {
+    id = "example",
+    description = "Example launched script",
+    command = [[
+echo "Hammerspoon launched script started at $(date)" >> "$HOME/.hammerspoon-launched.log"
+echo "PATH=$PATH" >> "$HOME/.hammerspoon-launched.log"
+]]
+}
